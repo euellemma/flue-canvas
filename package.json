@@ -1,0 +1,40 @@
+{
+	"name": "flue-canvas",
+	"private": true,
+	"type": "module",
+	"bin": {
+		"flue-canvas": "./bin/cli.mjs"
+	},
+	"files": [
+		"bin/",
+		"dist/",
+		"src/",
+		"flue.config.ts",
+		"wrangler.jsonc",
+		".env.example"
+	],
+	"scripts": {
+		"dev": "vite build --config vite.client.config.ts && concurrently \"vite build --watch --config vite.client.config.ts\" \"flue dev --target cloudflare\"",
+		"dev:client": "vite build --watch --config vite.client.config.ts",
+		"build": "vite build --config vite.client.config.ts && flue build --target cloudflare && vite build --config vite.cli.config.ts",
+		"build:client": "vite build --config vite.client.config.ts",
+		"cli": "tsx src/cli.ts",
+		"build:cli": "vite build --config vite.cli.config.ts",
+		"test": "tsx --test tests/canvas.test.ts"
+	},
+	"dependencies": {
+		"@flue/runtime": "^0.9.2",
+		"agents": "*",
+		"hono": "^4.7.0"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20260505.1",
+		"@flue/cli": "^0.9.2",
+		"citty": "*",
+		"concurrently": "^10.0.3",
+		"tsx": "*",
+		"typescript": "^5.0.0",
+		"vite": "*",
+		"wrangler": "^4.87.0"
+	}
+}

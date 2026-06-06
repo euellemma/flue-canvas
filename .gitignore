@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+.pnpm-debug.log
+
+# Build outputs
+dist/
+.flue/
+.flue-vite
+.flue-vite.wrangler.jsonc
+
+# Cloudflare Wrangler state and local emulators
+.wrangler/
+.dev.vars
+.env
+
+# IDE and System Files
+.DS_Store
+.vscode/
+.idea/
+
+# Planning
+plans/
