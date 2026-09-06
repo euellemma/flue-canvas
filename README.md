@@ -2,6 +2,8 @@
 
 Live-edit HTML pages with an AI assistant, on Flue 2 (Cloudflare Workers).
 
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/euellemma/flue-canvas)
+
 Every canvas is a plain URL. Open `/canvas/<id>`, type a request in the bar at
 the bottom, and an agent rewrites that very page in place. Each edit is persisted
 against the id — the same address always shows the latest version. The root
