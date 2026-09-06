@@ -4,7 +4,7 @@ import defaultHtml from './client/default.html?raw';
 
 // Canvas ids are caller-chosen URL slugs; anything that isn't one is not a
 // canvas (keeps /favicon.ico & co from rendering a seed page).
-const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
+export const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
 
 /**
  * The editor chrome injected into every served canvas page: the chat bar,
@@ -48,25 +48,42 @@ function withChrome(html: string, id: string): string {
 }
 
 /**
- * The canvas page routes (mounted at /canvas in app.ts): `GET /canvas/<id>`
- * serves the stored HTML for that id (the starter page until the agent saves
- * its first edit), with the editor chrome injected. The raw document is what
- * the agent edits and persists to R2 — the chrome is only ever part of the
- * served response.
+ * The canvas page routes (mounted at /canvas in app.ts):
+ *   GET    /canvas/<id> — serve the stored HTML for that id (the starter page
+ *                         until the agent saves its first edit), with the
+ *                         editor chrome injected.
+ *   DELETE /canvas/<id> — remove the canvas artifact from R2.
+ * The raw document is what the agent edits and persists to R2 — the chrome is
+ * only ever part of the served response.
  */
 export function createCanvasApp(bucketName: string): Hono {
 	const app = new Hono();
+
+	const bucketOf = (c: { env: unknown }): R2Bucket | undefined =>
+		(c.env as Record<string, R2Bucket | undefined>)[bucketName];
 
 	app.get('/:id', async (c) => {
 		const id = c.req.param('id') ?? '';
 		if (!SAFE_ID.test(id)) return c.notFound();
 
-		const bucket = (c.env as Record<string, R2Bucket | undefined>)[bucketName];
+		const bucket = bucketOf(c);
 		let html: string;
 		const object = bucket ? await bucket.get(id) : null;
 		html = object ? await object.text() : defaultHtml;
 
 		return c.html(withChrome(html, id));
+	});
+
+	app.delete('/:id', async (c) => {
+		const id = c.req.param('id') ?? '';
+		if (!SAFE_ID.test(id)) return c.notFound();
+
+		const bucket = bucketOf(c);
+		if (bucket) await bucket.delete(id);
+		// The page artifact is gone. The agent conversation for this id is
+		// durable DO state Flue does not expose for deletion — it only
+		// resurfaces if the same id is deliberately reused.
+		return c.body(null, 204);
 	});
 
 	return app;
