@@ -4,53 +4,50 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>canvas</title>
+        <style>
+            :root {
+                color-scheme: dark;
+            }
+            body {
+                margin: 0;
+                min-height: 100vh;
+                display: grid;
+                place-items: center;
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                background: #0e1116;
+                color: #e6e6e6;
+            }
+            main {
+                max-width: 36rem;
+                padding: 2rem;
+            }
+            h1 {
+                font-size: 1.6rem;
+                margin: 0 0 0.5rem;
+            }
+            p {
+                line-height: 1.6;
+                color: #9aa3af;
+            }
+            code {
+                background: #1a2029;
+                padding: 0.1rem 0.35rem;
+                border-radius: 4px;
+            }
+        </style>
     </head>
     <body>
-        <h1>The canvas is yours</h1>
-        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem">
-            <input
-                id="prompt-in"
-                style="flex: 1; padding: 0.25rem"
-                value="give me a very brief explanation on vite"
-            />
-            <button id="edit-btn">Send</button>
-        </div>
-        <pre
-            id="log"
-            style="
-                background: #111;
-                color: #0f0;
-                padding: 1rem;
-                min-height: 10rem;
-                white-space: pre-wrap;
-                font-family: monospace;
-            "
-        ></pre>
-        <script>
-            const logEl = document.getElementById("log");
-            const logLine = (msg) => {
-                logEl.textContent += msg + "\n";
-                logEl.scrollTop = logEl.scrollHeight;
-            };
-
-            document.getElementById("edit-btn").onclick = async () => {
-                const btn = document.getElementById("edit-btn");
-                const input = document.getElementById("prompt-in");
-                btn.disabled = true;
-                btn.textContent = "...";
-                logEl.textContent = "";
-                try {
-                    const { canvasChanged } = await FCAgentClient.send(
-                        input.value,
-                        logLine,
-                    );
-                    if (canvasChanged) location.reload();
-                } catch (err) {
-                    logLine("Error: " + err.message);
-                    btn.textContent = "Send";
-                    btn.disabled = false;
-                }
-            };
-        </script>
+        <main>
+            <h1>The canvas is yours</h1>
+            <p>
+                This page is edited live by an assistant. Type a request in the bar
+                below — <em>“make the heading bigger”, “add a counter button”</em> — and
+                watch the page rewrite itself.
+            </p>
+            <p>
+                Every change is saved against this page&apos;s id, so the same address
+                always shows the latest version.
+            </p>
+        </main>
     </body>
 </html>

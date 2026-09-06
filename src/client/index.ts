@@ -1,94 +1,74 @@
-interface SendPromptResult {
-  canvasChanged: boolean;
-  message: string;
+/**
+ * The injected editor chrome for a canvas page. This is NOT a custom agent
+ * client — it is a thin DOM wiring over the official `@flue/sdk`. The server
+ * injects `window.__CANVAS_ID__` plus this bundle into every canvas page it
+ * serves, so the chat bar always survives whatever the agent rewrites.
+ */
+import { createFlueClient } from '@flue/sdk';
+
+const w = window as unknown as {
+	__CANVAS_ID__?: string;
+};
+
+function el<T extends HTMLElement>(id: string): T | null {
+	return document.getElementById(id) as T | null;
 }
 
-class FCAgentClient {
-  readonly wsUrl: string;
-  readonly canvasId: string;
+async function main() {
+	const canvasId = w.__CANVAS_ID__;
+	if (!canvasId) return;
 
-  constructor(wsUrl: string, canvasId: string) {
-    this.wsUrl = wsUrl;
-    this.canvasId = canvasId;
-  }
+	const client = createFlueClient({
+		url: `/agents/canvas/${encodeURIComponent(canvasId)}`,
+	});
 
-  async send(
-    prompt: string,
-    log?: (msg: string) => void,
-  ): Promise<SendPromptResult> {
-    const { wsUrl, canvasId } = this;
+	const promptEl = el<HTMLTextAreaElement>('fc-prompt');
+	const sendEl = el<HTMLButtonElement>('fc-send');
+	const statusEl = el<HTMLElement>('fc-status');
+	if (!promptEl || !sendEl) return;
 
-    return new Promise((resolve, reject) => {
-      const ws = new WebSocket(wsUrl);
-      const parts: string[] = [];
+	// Keep the draft across the reload that follows a successful edit.
+	const draftKey = `fc:draft:${canvasId}`;
+	promptEl.value = sessionStorage.getItem(draftKey) ?? promptEl.value ?? '';
 
-      ws.onmessage = (e) => {
-        const frame = JSON.parse(e.data);
+	const setStatus = (text: string, isError = false) => {
+		if (!statusEl) return;
+		statusEl.textContent = text;
+		statusEl.style.color = isError ? '#ff6b6b' : '#8ce99a';
+	};
+	const setBusy = (busy: boolean) => {
+		sendEl.disabled = busy;
+		sendEl.textContent = busy ? 'Working…' : 'Send';
+		promptEl.disabled = busy;
+	};
 
-        if (frame.type === "event" && frame.event) {
-          const event = frame.event;
+	const submit = async () => {
+		const message = promptEl.value.trim();
+		if (!message || sendEl.disabled) return;
+		sessionStorage.setItem(draftKey, promptEl.value);
+		setBusy(true);
+		setStatus('Thinking…');
+		try {
+			// POST -> 202 admission, then wait for the turn to settle; the
+			// agent's finish hook has already synced the new HTML to R2.
+			const receipt = await client.send({ message: { kind: 'user', body: message } });
+			await client.read(receipt);
+			setStatus('Done — reloading…');
+			sessionStorage.removeItem(draftKey);
+			location.reload();
+		} catch (error) {
+			setStatus(`Error: ${error instanceof Error ? error.message : String(error)}`, true);
+			setBusy(false);
+		}
+	};
 
-          if (event.type === "message_end" && event.message?.content) {
-            for (const block of event.message.content as Array<
-              Record<string, unknown>
-            >) {
-              if (block.type === "text" && typeof block.text === "string") {
-                parts.push(block.text);
-                log?.(block.text);
-              }
-              if (
-                block.type === "thinking" &&
-                typeof block.thinking === "string"
-              ) {
-                parts.push(block.thinking);
-                log?.(`[thinking] ${block.thinking}`);
-              }
-            }
-          }
-
-          if (
-            event.type === "tool_execution_start" &&
-            typeof event.toolName === "string"
-          ) {
-            log?.(
-              `[tool] ${event.toolName} ${JSON.stringify(event.args ?? {})}`,
-            );
-          }
-        }
-
-        if (frame.type === "result" && frame.result) {
-          resolve({
-            canvasChanged: frame.result.canvasChanged === true,
-            message: frame.result.message ?? parts.join(""),
-          });
-          ws.close();
-        }
-
-        if (frame.type === "error") {
-          reject(new Error(frame.error?.message ?? "Workflow error"));
-          ws.close();
-        }
-      };
-
-      ws.onopen = () =>
-        ws.send(
-          JSON.stringify({
-            version: 1,
-            type: "invoke",
-            requestId: crypto.randomUUID(),
-            payload: { id: canvasId, message: prompt },
-          }),
-        );
-
-      ws.onerror = () => {
-        reject(new Error("WebSocket connection failed"));
-        ws.close();
-      };
-    });
-  }
+	sendEl.addEventListener('click', submit);
+	promptEl.addEventListener('keydown', (event) => {
+		if (event.key === 'Enter' && !event.shiftKey) {
+			event.preventDefault();
+			void submit();
+		}
+	});
 }
 
-(window as any).FCAgentClient = new FCAgentClient(
-  (window as any).__CANVAS_WS__,
-  (window as any).__CANVAS_ID__,
-);
+void main();

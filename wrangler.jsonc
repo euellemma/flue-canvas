@@ -1,16 +1,12 @@
 {
 	"$schema": "https://workers.cloudflare.com/schema/wrangler.json",
 	"name": "flue-canvas",
-	"compatibility_date": "2026-04-01",
+	"compatibility_date": "2026-06-01",
 	"compatibility_flags": ["nodejs_compat"],
 	"migrations": [
 		{
-			"tag": "flue-class-FlueRegistry",
-			"new_sqlite_classes": ["FlueRegistry"]
-		},
-		{
-			"tag": "flue-class-CanvasTurnWorkflow",
-			"new_sqlite_classes": ["CanvasTurnWorkflow"]
+			"tag": "flue-class-FlueCanvasEditorAgent",
+			"new_sqlite_classes": ["FlueCanvasEditorAgent"]
 		}
 	],
 	"ai": {
@@ -19,7 +15,8 @@
 	"r2_buckets": [
 		{
 			"binding": "CANVAS_BUCKET",
-			"bucket_name": "flue-canvas-bucket"
+			"bucket_name": "flue-canvas-bucket",
+			"preview_bucket_name": "flue-canvas-bucket-dev"
 		}
 	]
 }
