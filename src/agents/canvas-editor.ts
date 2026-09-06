@@ -41,7 +41,7 @@ function pageTitle(html: string): string {
 export function CanvasEditor(props: AgentProps) {
 	const canvasId = props.id;
 	// Workers AI binding (wrangler `ai`), so no provider API key is needed.
-	useModel('cloudflare/@cf/google/gemma-4-26b-a4b-it');
+	useModel('cloudflare/@cf/deepseek-ai/deepseek-v4-flash-0731');
 	// Lightweight in-memory shell/filesystem — one file per turn is all we
 	// need, durability comes from R2 + the mirror below.
 	useSandbox(bash(() => new Bash({ fs: new InMemoryFs() })));
